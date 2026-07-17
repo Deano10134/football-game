@@ -8,7 +8,7 @@ from flask_restful import Resource
 
 # Local imports
 from config import app, db, api
-from models import Player, Team, Game
+from server.models import Player, Team, Game
 
 class Players(Resource):
     def get(self):

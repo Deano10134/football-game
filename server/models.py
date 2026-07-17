@@ -5,8 +5,8 @@ from config import db
 
 # Association table for the many-to-many relationship between players and games
 player_games = db.Table('player_games',
-    db.Column('player_id', db.Integer, db.ForeignKey('player.id'), primary_key=True),
-    db.Column('game_id', db.Integer, db.ForeignKey('game.id'), primary_key=True)
+    db.Column('player_id', db.Integer, db.ForeignKey('players.id'), primary_key=True),
+    db.Column('game_id', db.Integer, db.ForeignKey('games.id'), primary_key=True)
 )
 
 # Models go here!
