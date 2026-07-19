@@ -16,13 +16,14 @@ player_games = db.Table('player_games',
 class User(db.Model, SerializerMixin):
     __tablename__ = 'users'
 
-    serialize_rules = ('-players.user', '-_password_hash')
+    serialize_rules = ('-players.user', '-_password_hash', '-reviews.user')
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String, nullable=False, unique=True)
     _password_hash = db.Column(db.String, nullable=False)
 
     players = db.relationship('Player', backref='user', lazy=True)
+    reviews = db.relationship('Review', backref='user', lazy=True)
 
     @hybrid_property
     def password_hash(self):
@@ -48,7 +49,7 @@ class User(db.Model, SerializerMixin):
 class Player(db.Model, SerializerMixin):
     __tablename__ = 'players'
 
-    serialize_rules = ('-team.players', '-games.players', '-games.home_team', '-games.away_team', '-user.players')
+    serialize_rules = ('-team.players', '-games.players', '-games.home_team', '-games.away_team', '-user.players', '-reviews.player')
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
@@ -58,6 +59,7 @@ class Player(db.Model, SerializerMixin):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     games = db.relationship('Game', secondary=player_games, back_populates='players')
+    reviews = db.relationship('Review', backref='player', lazy=True, cascade='all, delete-orphan')
 
     @validates('name')
     def validate_name(self, key, name):
@@ -78,7 +80,7 @@ class Player(db.Model, SerializerMixin):
 class Team(db.Model, SerializerMixin):
     __tablename__ = 'teams'
 
-    serialize_rules = ('-players.team', '-players.games', '-home_games.home_team', '-away_games.away_team')
+    serialize_rules = ('-players.team', '-players.games', '-home_games.home_team', '-away_games.away_team', '-reviews.team')
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False, unique=True)
@@ -87,6 +89,7 @@ class Team(db.Model, SerializerMixin):
     # Add relationships for home and away games
     home_games = db.relationship('Game', foreign_keys='Game.home_team_id', back_populates='home_team')
     away_games = db.relationship('Game', foreign_keys='Game.away_team_id', back_populates='away_team')
+    reviews = db.relationship('Review', backref='team', lazy=True, cascade='all, delete-orphan')
 
     @validates('name')
     def validate_name(self, key, name):
@@ -120,3 +123,39 @@ class Game(db.Model, SerializerMixin):
 
     def __repr__(self):
         return f'<Game {self.id}>'
+
+class Review(db.Model, SerializerMixin):
+    __tablename__ = 'reviews'
+
+    serialize_rules = ('-user.reviews', '-team.reviews', '-player.reviews')
+
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.String, nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    team_id = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=True)
+
+    @validates('content')
+    def validate_content(self, key, content):
+        if not isinstance(content, str) or len(content.strip()) == 0:
+            raise ValueError('Review content must be a non-empty string.')
+        return content
+
+    @validates('rating')
+    def validate_rating(self, key, rating):
+        if not isinstance(rating, int) or rating < 1 or rating > 5:
+            raise ValueError('Rating must be an integer between 1 and 5.')
+        return rating
+
+    @validates('team_id', 'player_id')
+    def validate_target(self, key, value):
+        other_key = 'player_id' if key == 'team_id' else 'team_id'
+        other_value = getattr(self, other_key, None)
+        if value is not None and other_value is not None:
+            raise ValueError('A review may only target a team or a player, not both.')
+        return value
+
+    def __repr__(self):
+        return f'<Review {self.id}>'

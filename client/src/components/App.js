@@ -5,6 +5,7 @@ import Home from "./Home";
 import TeamsPage from "./TeamsPage";
 import PlayersPage from "./PlayersPage";
 import GamesPage from "./GamesPage";
+import ReviewsPage from "./ReviewsPage";
 import Signup from "./Signup";
 import Login from "./Login";
 
@@ -49,6 +50,10 @@ function App() {
             render={(props) => <PlayersPage {...props} currentUser={currentUser} />}
           />
           <Route path="/games" component={GamesPage} />
+          <Route
+            path="/reviews"
+            render={(props) => <ReviewsPage {...props} currentUser={currentUser} />}
+          />
           <Route
             path="/signup"
             render={(props) => <Signup {...props} onLogin={handleLogin} />}

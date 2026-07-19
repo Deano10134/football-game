@@ -28,6 +28,9 @@ function NavBar({ currentUser, onLogout }) {
       <NavLink to="/games" style={linkStyle} activeStyle={activeStyle}>
         Games
       </NavLink>
+      <NavLink to="/reviews" style={linkStyle} activeStyle={activeStyle}>
+        Reviews
+      </NavLink>
       {currentUser ? (
         <>
           <span style={{ marginRight: "1rem" }}>Logged in as {currentUser.username}</span>

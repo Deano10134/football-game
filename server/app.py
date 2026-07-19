@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 # Local imports
 from config import app, db, api
-from server.models import Player, Team, Game, User
+from server.models import Player, Team, Game, User, Review
 
 
 class Signup(Resource):
@@ -247,6 +247,86 @@ class GameByID(Resource):
         return {}, 204
 
 api.add_resource(GameByID, '/games/<int:id>')
+
+
+class Reviews(Resource):
+    def get(self):
+        reviews = [review.to_dict() for review in Review.query.all()]
+        return reviews, 200
+
+    def post(self):
+        user_id = session.get('user_id')
+        if not user_id:
+            return {'error': 'Must be logged in to leave a review'}, 401
+
+        data = request.get_json()
+        team_id = data.get('team_id')
+        player_id = data.get('player_id')
+
+        if bool(team_id) == bool(player_id):
+            return {'errors': ['A review must target exactly one of team_id or player_id.']}, 400
+
+        try:
+            review = Review(
+                content=data.get('content'),
+                rating=data.get('rating'),
+                user_id=user_id,
+                team_id=team_id,
+                player_id=player_id,
+            )
+            db.session.add(review)
+            db.session.commit()
+            return review.to_dict(), 201
+        except (ValueError, IntegrityError) as e:
+            db.session.rollback()
+            return {'errors': [str(e)]}, 400
+
+api.add_resource(Reviews, '/reviews')
+
+class ReviewByID(Resource):
+    def get(self, id):
+        review = Review.query.filter_by(id=id).first()
+        if not review:
+            return {'error': 'Review not found'}, 404
+        return review.to_dict(), 200
+
+    def patch(self, id):
+        review = Review.query.filter_by(id=id).first()
+        if not review:
+            return {'error': 'Review not found'}, 404
+
+        user_id = session.get('user_id')
+        if not user_id:
+            return {'error': 'Must be logged in to edit a review'}, 401
+        if review.user_id != user_id:
+            return {'error': 'You may only edit reviews you created'}, 403
+
+        data = request.get_json()
+        try:
+            for attr in data:
+                setattr(review, attr, data[attr])
+            db.session.commit()
+            return review.to_dict(), 200
+        except (ValueError, IntegrityError) as e:
+            db.session.rollback()
+            return {'errors': [str(e)]}, 400
+
+    def delete(self, id):
+        review = Review.query.filter_by(id=id).first()
+        if not review:
+            return {'error': 'Review not found'}, 404
+
+        user_id = session.get('user_id')
+        if not user_id:
+            return {'error': 'Must be logged in to delete a review'}, 401
+        if review.user_id != user_id:
+            return {'error': 'You may only delete reviews you created'}, 403
+
+        db.session.delete(review)
+        db.session.commit()
+        return {}, 204
+
+api.add_resource(ReviewByID, '/reviews/<int:id>')
 
 
 # Views go here!
