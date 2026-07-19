@@ -1,4 +1,4 @@
-# Football  League — Client
+# Football League — Client
 
 This is the React frontend for the Football League app, bootstrapped with
 [Create React App](https://github.com/facebook/create-react-app).
@@ -8,7 +8,7 @@ are proxied to `http://localhost:5555`, configured in `package.json`).
 
 This web app was build for the Phase 4 project that I completed as part of my Software Engineering Transform course at Academy Xi in Australia. It showcases all skills that I learnt in Full stack development as apart of the course.
 
-This the Frontend part of the application.
+This the Frontend part of the project.
 ## Structure
 
 ```console
