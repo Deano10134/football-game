@@ -17,7 +17,7 @@ const PlayerSchema = Yup.object().shape({
     .required("Team is required"),
 });
 
-function PlayersPage() {
+function PlayersPage({ currentUser }) {
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [error, setError] = useState(null);
@@ -39,6 +39,7 @@ function PlayersPage() {
     fetch("/players", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
         name: values.name,
         position: values.position,
@@ -67,6 +68,7 @@ function PlayersPage() {
     fetch(`/players/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
         name: values.name,
         position: values.position,
@@ -94,7 +96,7 @@ function PlayersPage() {
   }
 
   function handleDelete(id) {
-    fetch(`/players/${id}`, { method: "DELETE" }).then((res) => {
+    fetch(`/players/${id}`, { method: "DELETE", credentials: "include" }).then((res) => {
       if (res.ok || res.status === 204) {
         setPlayers((prev) => prev.filter((p) => p.id !== id));
       }
@@ -106,50 +108,56 @@ function PlayersPage() {
       <h1>Players</h1>
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-      <h2>Add a New Player</h2>
-      <Formik
-        initialValues={{ name: "", position: "", team_id: "" }}
-        validationSchema={PlayerSchema}
-        onSubmit={handleCreate}
-      >
-        {({ isSubmitting }) => (
-          <Form>
-            <label htmlFor="name">Name:</label>
-            <Field id="name" name="name" type="text" />
-            <ErrorMessage name="name" component="div" style={{ color: "red" }} />
+      {currentUser ? (
+        <>
+          <h2>Add a New Player</h2>
+          <Formik
+            initialValues={{ name: "", position: "", team_id: "" }}
+            validationSchema={PlayerSchema}
+            onSubmit={handleCreate}
+          >
+            {({ isSubmitting }) => (
+              <Form>
+                <label htmlFor="name">Name:</label>
+                <Field id="name" name="name" type="text" />
+                <ErrorMessage name="name" component="div" style={{ color: "red" }} />
 
-            <div>
-              <label htmlFor="position">Position:</label>
-              <Field as="select" id="position" name="position">
-                <option value="">Select a position</option>
-                {POSITIONS.map((pos) => (
-                  <option key={pos} value={pos}>
-                    {pos}
-                  </option>
-                ))}
-              </Field>
-              <ErrorMessage name="position" component="div" style={{ color: "red" }} />
-            </div>
+                <div>
+                  <label htmlFor="position">Position:</label>
+                  <Field as="select" id="position" name="position">
+                    <option value="">Select a position</option>
+                    {POSITIONS.map((pos) => (
+                      <option key={pos} value={pos}>
+                        {pos}
+                      </option>
+                    ))}
+                  </Field>
+                  <ErrorMessage name="position" component="div" style={{ color: "red" }} />
+                </div>
 
-            <div>
-              <label htmlFor="team_id">Team:</label>
-              <Field as="select" id="team_id" name="team_id">
-                <option value="">Select a team</option>
-                {teams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </Field>
-              <ErrorMessage name="team_id" component="div" style={{ color: "red" }} />
-            </div>
+                <div>
+                  <label htmlFor="team_id">Team:</label>
+                  <Field as="select" id="team_id" name="team_id">
+                    <option value="">Select a team</option>
+                    {teams.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </Field>
+                  <ErrorMessage name="team_id" component="div" style={{ color: "red" }} />
+                </div>
 
-            <button type="submit" disabled={isSubmitting}>
-              Add Player
-            </button>
-          </Form>
-        )}
-      </Formik>
+                <button type="submit" disabled={isSubmitting}>
+                  Add Player
+                </button>
+              </Form>
+            )}
+          </Formik>
+        </>
+      ) : (
+        <p>Log in to add a new player.</p>
+      )}
 
       <h2>All Players</h2>
       <ul>
@@ -201,12 +209,16 @@ function PlayersPage() {
           ) : (
             <li key={player.id}>
               {player.name} — {player.position} — {player.team?.name}
-              <button onClick={() => setEditingId(player.id)} style={{ marginLeft: "1rem" }}>
-                Edit
-              </button>
-              <button onClick={() => handleDelete(player.id)} style={{ marginLeft: "0.5rem" }}>
-                Delete
-              </button>
+              {currentUser && currentUser.id === player.user_id && (
+                <>
+                  <button onClick={() => setEditingId(player.id)} style={{ marginLeft: "1rem" }}>
+                    Edit
+                  </button>
+                  <button onClick={() => handleDelete(player.id)} style={{ marginLeft: "0.5rem" }}>
+                    Delete
+                  </button>
+                </>
+              )}
             </li>
           )
         )}

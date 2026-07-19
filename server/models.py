@@ -1,8 +1,9 @@
 from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import validates
 
-from config import db
+from config import db, bcrypt
 
 # Association table for the many-to-many relationship between players and games
 player_games = db.Table('player_games',
@@ -12,16 +13,49 @@ player_games = db.Table('player_games',
 
 # Models go here!
 
+class User(db.Model, SerializerMixin):
+    __tablename__ = 'users'
+
+    serialize_rules = ('-players.user', '-_password_hash')
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String, nullable=False, unique=True)
+    _password_hash = db.Column(db.String, nullable=False)
+
+    players = db.relationship('Player', backref='user', lazy=True)
+
+    @hybrid_property
+    def password_hash(self):
+        raise AttributeError('Password hashes may not be viewed.')
+
+    @password_hash.setter
+    def password_hash(self, password):
+        password_hash = bcrypt.generate_password_hash(password.encode('utf-8'))
+        self._password_hash = password_hash.decode('utf-8')
+
+    def authenticate(self, password):
+        return bcrypt.check_password_hash(self._password_hash, password.encode('utf-8'))
+
+    @validates('username')
+    def validate_username(self, key, username):
+        if not isinstance(username, str) or len(username.strip()) == 0:
+            raise ValueError('Username must be a non-empty string.')
+        return username
+
+    def __repr__(self):
+        return f'<User {self.id} {self.username}>'
+
 class Player(db.Model, SerializerMixin):
     __tablename__ = 'players'
 
-    serialize_rules = ('-team.players', '-games.players', '-games.home_team', '-games.away_team')
+    serialize_rules = ('-team.players', '-games.players', '-games.home_team', '-games.away_team', '-user.players')
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
     position = db.Column(db.String, nullable=False)
     
     team_id = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     games = db.relationship('Game', secondary=player_games, back_populates='players')
 

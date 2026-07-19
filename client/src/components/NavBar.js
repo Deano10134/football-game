@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 
-function NavBar() {
+function NavBar({ currentUser, onLogout }) {
   const linkStyle = {
     marginRight: "1rem",
     textDecoration: "none",
@@ -28,6 +28,21 @@ function NavBar() {
       <NavLink to="/games" style={linkStyle} activeStyle={activeStyle}>
         Games
       </NavLink>
+      {currentUser ? (
+        <>
+          <span style={{ marginRight: "1rem" }}>Logged in as {currentUser.username}</span>
+          <button onClick={onLogout}>Log Out</button>
+        </>
+      ) : (
+        <>
+          <NavLink to="/login" style={linkStyle} activeStyle={activeStyle}>
+            Log In
+          </NavLink>
+          <NavLink to="/signup" style={linkStyle} activeStyle={activeStyle}>
+            Sign Up
+          </NavLink>
+        </>
+      )}
     </nav>
   );
 }

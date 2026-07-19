@@ -4,13 +4,63 @@
 from datetime import datetime
 
 # Remote library imports
-from flask import request
+from flask import request, session
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
 
 # Local imports
 from config import app, db, api
-from server.models import Player, Team, Game
+from server.models import Player, Team, Game, User
+
+
+class Signup(Resource):
+    def post(self):
+        data = request.get_json()
+        try:
+            user = User(username=data.get('username'))
+            user.password_hash = data.get('password')
+            db.session.add(user)
+            db.session.commit()
+            session['user_id'] = user.id
+            return user.to_dict(), 201
+        except (ValueError, IntegrityError) as e:
+            db.session.rollback()
+            return {'errors': [str(e)]}, 400
+
+api.add_resource(Signup, '/signup')
+
+
+class Login(Resource):
+    def post(self):
+        data = request.get_json()
+        user = User.query.filter_by(username=data.get('username')).first()
+        if user and user.authenticate(data.get('password')):
+            session['user_id'] = user.id
+            return user.to_dict(), 200
+        return {'error': 'Invalid username or password'}, 401
+
+api.add_resource(Login, '/login')
+
+
+class Logout(Resource):
+    def delete(self):
+        session['user_id'] = None
+        return {}, 204
+
+api.add_resource(Logout, '/logout')
+
+
+class CheckSession(Resource):
+    def get(self):
+        user_id = session.get('user_id')
+        if user_id:
+            user = User.query.filter_by(id=user_id).first()
+            if user:
+                return user.to_dict(), 200
+        return {'error': 'Not logged in'}, 401
+
+api.add_resource(CheckSession, '/check_session')
+
 
 class Players(Resource):
     def get(self):
@@ -18,12 +68,17 @@ class Players(Resource):
         return players, 200
 
     def post(self):
+        user_id = session.get('user_id')
+        if not user_id:
+            return {'error': 'Must be logged in to create a player'}, 401
+
         data = request.get_json()
         try:
             player = Player(
                 name=data.get('name'),
                 position=data.get('position'),
                 team_id=data.get('team_id'),
+                user_id=user_id,
             )
             db.session.add(player)
             db.session.commit()
@@ -46,6 +101,12 @@ class PlayerByID(Resource):
         if not player:
             return {'error': 'Player not found'}, 404
 
+        user_id = session.get('user_id')
+        if not user_id:
+            return {'error': 'Must be logged in to edit a player'}, 401
+        if player.user_id != user_id:
+            return {'error': 'You may only edit players you created'}, 403
+
         data = request.get_json()
         try:
             for attr in data:
@@ -60,6 +121,12 @@ class PlayerByID(Resource):
         player = Player.query.filter_by(id=id).first()
         if not player:
             return {'error': 'Player not found'}, 404
+
+        user_id = session.get('user_id')
+        if not user_id:
+            return {'error': 'Must be logged in to delete a player'}, 401
+        if player.user_id != user_id:
+            return {'error': 'You may only delete players you created'}, 403
 
         db.session.delete(player)
         db.session.commit()
