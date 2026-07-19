@@ -9,7 +9,7 @@ const TeamSchema = Yup.object().shape({
     .required("Team name is required"),
 });
 
-function TeamsPage() {
+function TeamsPage({ currentUser }) {
   const [teams, setTeams] = useState([]);
   const [error, setError] = useState(null);
 
@@ -24,6 +24,7 @@ function TeamsPage() {
     fetch("/teams", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(values),
     })
       .then((res) => {
@@ -42,6 +43,14 @@ function TeamsPage() {
         setErrors({ name: err.errors ? err.errors.join(", ") : "Something went wrong" });
       })
       .finally(() => setSubmitting(false));
+  }
+
+  function handleDelete(id) {
+    fetch(`/teams/${id}`, { method: "DELETE", credentials: "include" }).then((res) => {
+      if (res.ok || res.status === 204) {
+        setTeams((prev) => prev.filter((t) => t.id !== id));
+      }
+    });
   }
 
   return (
@@ -70,7 +79,14 @@ function TeamsPage() {
       <h2>All Teams</h2>
       <ul>
         {teams.map((team) => (
-          <li key={team.id}>{team.name}</li>
+          <li key={team.id}>
+            {team.name}
+            {currentUser && (
+              <button onClick={() => handleDelete(team.id)} style={{ marginLeft: "1rem" }}>
+                Delete
+              </button>
+            )}
+          </li>
         ))}
       </ul>
     </div>

@@ -179,6 +179,10 @@ class TeamByID(Resource):
         if not team:
             return {'error': 'Team not found'}, 404
 
+        user_id = session.get('user_id')
+        if not user_id:
+            return {'error': 'Must be logged in to delete a team'}, 401
+
         db.session.delete(team)
         db.session.commit()
         return {}, 204

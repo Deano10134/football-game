@@ -40,7 +40,10 @@ function App() {
       <div style={{ padding: "0 1rem" }}>
         <Switch>
           <Route exact path="/" component={Home} />
-          <Route path="/teams" component={TeamsPage} />
+          <Route
+            path="/teams"
+            render={(props) => <TeamsPage {...props} currentUser={currentUser} />}
+          />
           <Route
             path="/players"
             render={(props) => <PlayersPage {...props} currentUser={currentUser} />}
