@@ -5,6 +5,8 @@ Games — built with a Flask/SQLAlchemy REST API backend and a React frontend.
 
 This web app was build for the Phase 4 project that I completed as part of my Software Engineering Transform course at Academy Xi in Australia. It showcases all skills that I learnt in Full stack development as part of the course.
 
+This is the backend part of the project.
+
 ## Overview
 
 This app lets you:
