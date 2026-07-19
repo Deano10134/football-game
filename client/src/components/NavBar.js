@@ -15,7 +15,7 @@ function NavBar({ currentUser, onLogout }) {
 
   return (
     <nav style={{ padding: "1rem", borderBottom: "2px solid #0b3d91", marginBottom: "1rem" }}>
-      <h2 style={{ display: "inline-block", marginRight: "2rem" }}>⚽ Soccer League</h2>
+      <h2 style={{ display: "inline-block", marginRight: "2rem" }}>⚽ Football League</h2>
       <NavLink exact to="/" style={linkStyle} activeStyle={activeStyle}>
         Home
       </NavLink>
